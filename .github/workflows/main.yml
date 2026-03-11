@@ -1,41 +1,51 @@
-name: build-if-tag
+name: Build VPN AAR Library
 
 on:
   push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
-
-env:
-  APP: amneziawg-go
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Actions tab ကနေ Manual Run လို့ရအောင်
 
 jobs:
-  build:
+  build-aar:
     runs-on: ubuntu-latest
-    name: build
+
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          go-version: '1.21' # သင့် Project နဲ့ကိုက်မယ့် Go version ပြောင်းပေးနိုင်ပါတယ်
 
-      - name: Setup metadata
-        uses: docker/metadata-action@v5
-        id: metadata
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          images: amneziavpn/${{ env.APP }}
-          tags: type=semver,pattern={{version}}
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      # Gomobile နဲ့ Gobind ကို Install လုပ်ခြင်း
+      - name: Install Gomobile
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          export PATH=$PATH:$(go env GOPATH)/bin
+          gomobile init
 
-      - name: Build
-        uses: docker/build-push-action@v5
+      # Go Code ကို AAR အဖြစ် ပြောင်းလဲခြင်း
+      - name: Build AAR
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          
+          # သတိပြုရန် - သင့် Go Code တွေရှိတဲ့ Folder ထဲကို အရင်ဝင်ရပါမယ်
+          # ဥပမာ - cd tunnel (သို့မဟုတ် Project ရဲ့ Main Folder ဆိုရင် မလိုပါ)
+          
+          # .aar ထုတ်မယ့် Command
+          gomobile bind -target=android -androidapi 21 -javapkg=com.customvpn.core -o wgcore.aar ./
+          
+      # ထွက်လာတဲ့ AAR ဖိုင်ကို Download ဆွဲလို့ရအောင် တင်ပေးခြင်း
+      - name: Upload AAR Artifact
+        uses: actions/upload-artifact@v4
         with:
-          push: true
-          tags: ${{ steps.metadata.outputs.tags }}
+          name: compiled-wgcore-aar
+          path: ./*.aar # ထွက်လာတဲ့ AAR ဖိုင်ကို ယူမည်
