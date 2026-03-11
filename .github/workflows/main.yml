@@ -1,9 +1,9 @@
-name: Build VPN AAR Library
+name: Build Custom AmneziaWG AAR
 
 on:
   push:
-    branches: [ "main", "master" ]
-  workflow_dispatch: # Actions tab ကနေ Manual Run လို့ရအောင်
+    branches: [ "master", "main" ]
+  workflow_dispatch:
 
 jobs:
   build-aar:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21' # သင့် Project နဲ့ကိုက်မယ့် Go version ပြောင်းပေးနိုင်ပါတယ်
+          go-version: '1.21' # သင့် Repo နဲ့ ကိုက်ညီမည့် Version
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -24,7 +24,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Gomobile နဲ့ Gobind ကို Install လုပ်ခြင်း
       - name: Install Gomobile
         run: |
           go install golang.org/x/mobile/cmd/gomobile@latest
@@ -32,20 +31,14 @@ jobs:
           export PATH=$PATH:$(go env GOPATH)/bin
           gomobile init
 
-      # Go Code ကို AAR အဖြစ် ပြောင်းလဲခြင်း
-      - name: Build AAR
+      - name: Build AAR with Gomobile
         run: |
           export PATH=$PATH:$(go env GOPATH)/bin
+          # amneziawg-go တစ်ခုလုံးကို Library အဖြစ် Android အတွက် AAR ပြောင်းထုတ်ခြင်း
+          gomobile bind -target=android -androidapi 21 -javapkg=com.amneziawg.core -o custom-wgcore.aar ./
           
-          # သတိပြုရန် - သင့် Go Code တွေရှိတဲ့ Folder ထဲကို အရင်ဝင်ရပါမယ်
-          # ဥပမာ - cd tunnel (သို့မဟုတ် Project ရဲ့ Main Folder ဆိုရင် မလိုပါ)
-          
-          # .aar ထုတ်မယ့် Command
-          gomobile bind -target=android -androidapi 21 -javapkg=com.customvpn.core -o wgcore.aar ./
-          
-      # ထွက်လာတဲ့ AAR ဖိုင်ကို Download ဆွဲလို့ရအောင် တင်ပေးခြင်း
-      - name: Upload AAR Artifact
+      - name: Upload AAR File
         uses: actions/upload-artifact@v4
         with:
-          name: compiled-wgcore-aar
-          path: ./*.aar # ထွက်လာတဲ့ AAR ဖိုင်ကို ယူမည်
+          name: amneziawg-custom-aar
+          path: ./*.aar
