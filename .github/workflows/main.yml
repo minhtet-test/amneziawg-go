@@ -34,8 +34,9 @@ jobs:
       - name: Build AAR with Gomobile
         run: |
           export PATH=$PATH:$(go env GOPATH)/bin
-          # amneziawg-go တစ်ခုလုံးကို Library အဖြစ် Android အတွက် AAR ပြောင်းထုတ်ခြင်း
-          gomobile bind -target=android -androidapi 21 -javapkg=com.amneziawg.core -o custom-wgcore.aar ./
+          
+          # ./ နေရာတွင် ./wgwrapper ကို ပြောင်းလဲအသုံးပြုခြင်း
+          gomobile bind -target=android -androidapi 21 -javapkg=com.amneziawg.core -o custom-wgcore.aar ./wgwrapper
           
       - name: Upload AAR File
         uses: actions/upload-artifact@v4
